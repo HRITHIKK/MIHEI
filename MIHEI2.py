@@ -1,26 +1,27 @@
 from flask import Flask, request, jsonify
 import requests
-import json
 
 app = Flask(__name__)
 
-# Global variable to temporarily store the phone number
-stored_phone_number = None
+# Dictionary to store phone numbers by group ID (conversation ID)
+group_phone_numbers = {}
 
 @app.route('/Phone', methods=['POST'])
 def phone():
-    global stored_phone_number
     data = request.json
     print("Received data:", data)
 
+    group_id = str(data.get('groupId'))
     matched_intent = data.get('matchedIntentName', '')
     message = data.get('message', '')
 
     if matched_intent.lower() == 'phonenumber' and message.startswith('+91') and len(message) == 13:
-        stored_phone_number = message
+        # Store phone number per group ID
+        group_phone_numbers[group_id] = message
+        phone_number_formatted = message.replace("+91", "0")
 
         payload = {
-            "phone_number": stored_phone_number.replace("+91", "0")
+            "phone_number": phone_number_formatted
         }
 
         try:
@@ -34,7 +35,7 @@ def phone():
 
             return jsonify([
                 {"message": response.text},
-                {"message": f"Updated phone number as {payload['phone_number']}"}
+                {"message": f"Updated phone number as {phone_number_formatted}"}
             ]), response.status_code
         except Exception as e:
             print("Error calling external API:", e)
@@ -45,15 +46,17 @@ def phone():
 
 @app.route('/name', methods=['POST'])
 def name():
-    global stored_phone_number
     data = request.json or {}
     print("Received data:", data)
 
+    group_id = str(data.get('groupId'))
     matched_intent = data.get('matchedIntentName', '')
     message = data.get('message', '')
 
-    if matched_intent.lower() == 'name' and stored_phone_number:
-        phone_number_formatted = stored_phone_number.replace("+91", "0")
+    phone_number = group_phone_numbers.get(group_id)
+
+    if matched_intent.lower() == 'name' and phone_number:
+        phone_number_formatted = phone_number.replace("+91", "0")
         payload = {
             "phone_number": phone_number_formatted,
             "first_name": message
@@ -81,15 +84,17 @@ def name():
 
 @app.route('/address', methods=['POST'])
 def address():
-    global stored_phone_number
     data = request.json or {}
     print("Received data:", data)
 
+    group_id = str(data.get('groupId'))
     matched_intent = data.get('matchedIntentName', '')
     message = data.get('message', '')
 
-    if matched_intent.lower() == 'address' and stored_phone_number:
-        phone_number_formatted = stored_phone_number.replace("+91", "0")
+    phone_number = group_phone_numbers.get(group_id)
+
+    if matched_intent.lower() == 'address' and phone_number:
+        phone_number_formatted = phone_number.replace("+91", "0")
         payload = {
             "phone_number": phone_number_formatted,
             "address": message
@@ -103,6 +108,9 @@ def address():
             )
             print("External API Status:", response.status_code)
             print("External API Body:", response.text)
+
+            # Optional: clear stored data after all fields are collected
+            group_phone_numbers.pop(group_id, None)
 
             return jsonify([
                 {"message": response.text},
