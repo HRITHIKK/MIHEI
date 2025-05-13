@@ -18,11 +18,11 @@ def phone():
     matched_intent = data.get('matchedIntentName', '')
     message = data.get('message', '')
 
-    if matched_intent.lower() == 'phonenumber' and message.startswith('+91') and len(message) == 13:
-        group_phone_numbers[group_id] = message  # ✅ store phone number per group ID
+    if matched_intent.lower() == 'phonenumber':
+        group_phone_numbers[group_id] = message  # store phone number per group ID
 
         payload = {
-            "phone_number": message.replace("+91", "0")
+            "phone_number": message
         }
 
         try:
@@ -62,7 +62,7 @@ def name():
         if not phone_number:
             return jsonify([{"message": "Phone number not found for this session. Please provide phone number first."}]), 400
 
-        phone_number_formatted = phone_number.replace("+91", "0")
+        phone_number_formatted = phone_number
         payload = {
             "phone_number": phone_number_formatted,
             "first_name": message
@@ -105,7 +105,7 @@ def address():
         if not phone_number:
             return jsonify([{"message": "Phone number not found for this session. Please provide phone number first."}]), 400
 
-        phone_number_formatted = phone_number.replace("+91", "0")
+        phone_number_formatted = phone_number
         payload = {
             "phone_number": phone_number_formatted,
             "address": message
